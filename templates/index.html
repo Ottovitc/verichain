@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VeriChain — Supply Chain Ledger &amp; Fraud Console</title>
+<style>
+  :root {
+    color-scheme: light;
+    --plane:      #f2f5f8;
+    --surface:    #ffffff;
+    --recessed:   #e8ecf1;
+    --ink:        #10151c;
+    --ink-2:      #4c5866;
+    --ink-muted:  #808d9b;
+    --line:       rgba(16,21,28,0.12);
+    --line-strong:rgba(16,21,28,0.24);
+    --accent:     #1c5cab;
+    --accent-ink: #ffffff;
+    --good:       #0ca30c;
+    --critical:   #d03b3b;
+    --pending:    #a6afb9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --plane:      #0a0e14;
+      --surface:    #121821;
+      --recessed:   #0d121a;
+      --ink:        #eef2f6;
+      --ink-2:      #a9b4c0;
+      --ink-muted:  #6b7684;
+      --line:       rgba(238,242,246,0.12);
+      --line-strong:rgba(238,242,246,0.24);
+      --accent:     #3987e5;
+      --accent-ink: #071019;
+      --good:       #22b522;
+      --critical:   #e35c5c;
+      --pending:    #4b5560;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --plane: #0a0e14; --surface: #121821; --recessed: #0d121a;
+    --ink: #eef2f6; --ink-2: #a9b4c0; --ink-muted: #6b7684;
+    --line: rgba(238,242,246,0.12); --line-strong: rgba(238,242,246,0.24);
+    --accent: #3987e5; --accent-ink: #071019;
+    --good: #22b522; --critical: #e35c5c; --pending: #4b5560;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--plane); color: var(--ink); font-family: -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif; line-height: 1.45; }
+  .mono { font-family: "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+
+  header { background: var(--surface); border-bottom: 1px solid var(--line); padding: 12px clamp(16px, 3vw, 32px); display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: baseline; gap: 10px; }
+  .brand .name { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+  .brand .tag { font-size: 12px; color: var(--ink-muted); }
+  .metrics { display: flex; gap: 22px; flex-wrap: wrap; }
+  .metric { text-align: right; }
+  .metric .m-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-muted); }
+  .metric .m-val { font-size: 15px; font-weight: 700; }
+
+  .wrap { max-width: 1180px; margin: 0 auto; padding: clamp(16px, 3vw, 32px); }
+  .layout { display: grid; grid-template-columns: 300px 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
+
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+  .panel h2 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 4px; }
+  .panel .sub { font-size: 12px; color: var(--ink-muted); margin: 0 0 14px; }
+
+  label { display: block; font-size: 12px; font-weight: 600; margin: 12px 0 5px; }
+  label:first-of-type { margin-top: 0; }
+  select, input[type="number"] { width: 100%; padding: 9px 10px; border-radius: 7px; border: 1px solid var(--line-strong); background: var(--recessed); color: var(--ink); font-size: 14px; font-family: inherit; }
+  .order-preview { font-size: 12px; color: var(--ink-muted); margin-top: 6px; }
+  .order-preview .mono { color: var(--ink); }
+
+  button { font-family: inherit; font-size: 13px; font-weight: 600; border-radius: 7px; border: 1px solid transparent; padding: 9px 14px; cursor: pointer; }
+  button.primary { background: var(--accent); color: var(--accent-ink); width: 100%; margin-top: 16px; }
+  button.primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.ghost { background: transparent; border-color: var(--line-strong); color: var(--ink); }
+  button.ghost:hover { border-color: var(--accent); color: var(--accent); }
+  button.small { padding: 6px 10px; font-size: 12px; }
+
+  .queue-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+  .queue-item { border: 1px solid var(--critical); background: color-mix(in srgb, var(--critical) 8%, var(--surface)); border-radius: 8px; padding: 10px 12px; font-size: 12.5px; }
+  .queue-item .q-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .queue-item .q-reason { color: var(--ink-2); margin-bottom: 8px; }
+  .queue-empty { font-size: 12.5px; color: var(--ink-muted); padding: 8px 0; }
+
+  .events { display: flex; flex-direction: column; gap: 14px; }
+  .event-card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+  .event-head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .event-head .order { font-weight: 700; font-size: 14.5px; }
+  .event-head .partner { color: var(--ink-2); font-size: 13px; }
+  .event-head .amount { font-size: 13px; color: var(--ink-2); }
+
+  .stages { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  @media (max-width: 620px) { .stages { grid-template-columns: 1fr 1fr; } }
+  .stage { border: 1px solid var(--line); border-radius: 8px; padding: 10px 11px; min-height: 90px; display: flex; flex-direction: column; justify-content: space-between; }
+  .stage .s-title { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-muted); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--pending); flex: none; }
+  .dot.good { background: var(--good); }
+  .dot.critical { background: var(--critical); }
+  .stage .s-body { font-size: 12px; color: var(--ink-2); flex: 1; }
+  .stage .s-body .mono { display: block; color: var(--ink); font-size: 11.5px; }
+  .stage button { width: 100%; margin-top: 8px; }
+
+  .badge { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+  .badge.good { background: color-mix(in srgb, var(--good) 16%, transparent); color: var(--good); }
+  .badge.critical { background: color-mix(in srgb, var(--critical) 16%, transparent); color: var(--critical); }
+
+  .overlay { position: fixed; inset: 0; background: rgba(8,10,14,0.5); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 20; }
+  .overlay.open { display: flex; }
+  .drawer { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; max-width: 480px; width: 100%; padding: 22px; max-height: 84vh; overflow-y: auto; }
+  .drawer h3 { margin: 0 0 2px; font-size: 15px; }
+  .drawer .sub { font-size: 12px; color: var(--ink-muted); margin: 0 0 16px; }
+  .audit-row { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
+  .audit-row:first-of-type { border-top: none; }
+  .audit-row .a-time { width: 56px; flex: none; font-size: 11px; color: var(--ink-muted); }
+  .audit-row .a-body .a-title { font-size: 13px; font-weight: 600; }
+  .audit-row .a-body .a-detail { font-size: 12px; color: var(--ink-2); }
+  .drawer-close { width: 100%; margin-top: 16px; }
+
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--ink-muted); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="name">VeriChain</span>
+    <span class="tag">Supply Chain Ledger &amp; Fraud Console</span>
+  </div>
+  <div class="metrics">
+    <div class="metric"><div class="m-label">Ledger SLA</div><div class="m-val mono">&lt; 5s</div></div>
+    <div class="metric"><div class="m-label">Precision / Recall</div><div class="m-val mono">90% / 85%</div></div>
+    <div class="metric"><div class="m-label">Dispute time</div><div class="m-val mono">21d &rarr; <span style="color:var(--good)">&darr;40%</span></div></div>
+    <div class="metric"><div class="m-label">Partners live</div><div class="m-val mono">10</div></div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="layout">
+    <div class="panel">
+      <h2>New Event</h2>
+      <p class="sub">Order &rarr; Shipment &rarr; Receipt &rarr; Payment</p>
+
+      <label for="partner">Partner</label>
+      <select id="partner"></select>
+
+      <label for="amount">Payment amount (USD)</label>
+      <input type="number" id="amount" value="18000" min="100" step="100">
+
+      <p class="order-preview">Backed by a local Flask API &amp; hash-chained ledger.</p>
+
+      <button class="primary" id="create-btn">Create Event</button>
+
+      <h2 style="margin-top:26px">Operator Queue</h2>
+      <p class="sub">Payments on hold, pending review</p>
+      <div class="queue-list" id="queue"></div>
+    </div>
+
+    <div class="events" id="events">
+      <div class="empty-state" id="empty-state">No events yet — create one to start the walkthrough.</div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="drawer">
+    <h3>Audit record</h3>
+    <p class="sub mono" id="audit-order"></p>
+    <div id="audit-body"></div>
+    <button class="ghost drawer-close" id="audit-close">Close</button>
+  </div>
+</div>
+
+<script>
+  const api = (path, opts) => fetch(path, opts).then(r => r.json());
+
+  let events = [];
+
+  async function loadPartners() {
+    const partners = await api("/api/partners");
+    const sel = document.getElementById("partner");
+    partners.forEach(p => {
+      const opt = document.createElement("option");
+      opt.value = p; opt.textContent = p;
+      sel.appendChild(opt);
+    });
+  }
+
+  async function refreshEvents() {
+    events = await api("/api/events");
+    render();
+  }
+
+  function renderEmpty() {
+    document.getElementById("empty-state").style.display = events.length ? "none" : "block";
+  }
+
+  function stageHTML(ev) {
+    const ledger = ev.ledger
+      ? `<div class="s-title"><span class="dot good"></span>Recorded</div>
+         <div class="s-body"><span class="mono">${ev.ledger.hash.slice(0, 18)}...</span>written by ${ev.ledger.node} · ${ev.ledger.elapsed}s</div>`
+      : `<div class="s-title"><span class="dot"></span>Ledger</div>
+         <div class="s-body">Not yet recorded.</div>
+         <button class="ghost small" onclick="recordLedger('${ev.id}')">Record to Ledger</button>`;
+
+    let risk;
+    if (!ev.ledger) {
+      risk = `<div class="s-title"><span class="dot"></span>Risk check</div><div class="s-body">Waiting on ledger.</div>`;
+    } else if (!ev.risk) {
+      risk = `<div class="s-title"><span class="dot"></span>Risk check</div>
+              <div class="s-body">Ready to score.</div>
+              <button class="ghost small" onclick="runRisk('${ev.id}')">Run Risk Check</button>`;
+    } else {
+      const cls = ev.risk.flagged ? "critical" : "good";
+      risk = `<div class="s-title"><span class="dot ${cls}"></span>Risk score</div>
+              <div class="s-body"><span class="badge ${cls}">${ev.risk.score}/100</span><br>${ev.risk.reason}</div>`;
+    }
+
+    let resolve;
+    if (!ev.risk) {
+      resolve = `<div class="s-title"><span class="dot"></span>Resolution</div><div class="s-body">Waiting on risk check.</div>`;
+    } else if (ev.status === "released") {
+      resolve = `<div class="s-title"><span class="dot good"></span>Released</div><div class="s-body">Payment released${ev.approved_by ? " by " + ev.approved_by : " automatically"}.</div>`;
+    } else if (ev.status === "held") {
+      resolve = `<div class="s-title"><span class="dot critical"></span>On hold</div><div class="s-body">Awaiting operator review — see queue.</div>`;
+    } else {
+      resolve = `<div class="s-title"><span class="dot"></span>Resolution</div><div class="s-body">—</div>`;
+    }
+
+    const audit = ev.status === "released"
+      ? `<div class="s-title"><span class="dot good"></span>Audit</div>
+         <div class="s-body">Full timeline available.</div>
+         <button class="ghost small" onclick="showAudit('${ev.id}')">Export Audit Record</button>`
+      : `<div class="s-title"><span class="dot"></span>Audit</div><div class="s-body">Available once released.</div>`;
+
+    return `<div class="stages">
+      <div class="stage">${ledger}</div>
+      <div class="stage">${risk}</div>
+      <div class="stage">${resolve}</div>
+      <div class="stage">${audit}</div>
+    </div>`;
+  }
+
+  function render() {
+    const el = document.getElementById("events");
+    el.querySelectorAll(".event-card").forEach(n => n.remove());
+    events.slice().reverse().forEach(ev => {
+      const card = document.createElement("div");
+      card.className = "event-card";
+      card.innerHTML = `
+        <div class="event-head">
+          <span class="order mono">${ev.order}</span>
+          <span class="partner">${ev.partner}</span>
+          <span class="amount mono">$${Number(ev.amount).toLocaleString()}</span>
+        </div>
+        ${stageHTML(ev)}
+      `;
+      el.appendChild(card);
+    });
+    renderEmpty();
+    renderQueue();
+  }
+
+  function renderQueue() {
+    const q = document.getElementById("queue");
+    const held = events.filter(e => e.status === "held");
+    if (!held.length) {
+      q.innerHTML = `<div class="queue-empty">Nothing waiting on review.</div>`;
+      return;
+    }
+    q.innerHTML = "";
+    held.forEach(ev => {
+      const item = document.createElement("div");
+      item.className = "queue-item";
+      item.innerHTML = `
+        <div class="q-top"><span class="mono">${ev.order}</span><span class="badge critical">${ev.risk.score}/100</span></div>
+        <div class="q-reason">${ev.partner} · $${Number(ev.amount).toLocaleString()}<br>${ev.risk.reason}</div>
+        <button class="ghost small" style="width:100%" onclick="approve('${ev.id}')">Approve &amp; Release</button>
+      `;
+      q.appendChild(item);
+    });
+  }
+
+  document.getElementById("create-btn").addEventListener("click", async () => {
+    const partner = document.getElementById("partner").value;
+    const amount = Math.max(100, +document.getElementById("amount").value || 0);
+    await api("/api/events", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ partner, amount }) });
+    await refreshEvents();
+  });
+
+  window.recordLedger = async (id) => { await api(`/api/events/${id}/ledger`, { method: "POST" }); await refreshEvents(); };
+  window.runRisk = async (id) => { await api(`/api/events/${id}/risk`, { method: "POST" }); await refreshEvents(); };
+  window.approve = async (id) => { await api(`/api/events/${id}/approve`, { method: "POST" }); await refreshEvents(); };
+
+  window.showAudit = async (id) => {
+    const ev = events.find(e => e.id === id);
+    const audit = await api(`/api/events/${id}/audit`);
+    document.getElementById("audit-order").textContent = `${ev.order} · ${ev.partner}`;
+    document.getElementById("audit-body").innerHTML = audit.map(a => `
+      <div class="audit-row">
+        <div class="a-time mono">${a.time}</div>
+        <div class="a-body"><div class="a-title">${a.title}</div><div class="a-detail">${a.detail}</div></div>
+      </div>
+    `).join("");
+    document.getElementById("overlay").classList.add("open");
+  };
+  document.getElementById("audit-close").addEventListener("click", () => document.getElementById("overlay").classList.remove("open"));
+  document.getElementById("overlay").addEventListener("click", (e) => { if (e.target.id === "overlay") e.currentTarget.classList.remove("open"); });
+
+  loadPartners();
+  refreshEvents();
+</script>
+</body>
+</html>
